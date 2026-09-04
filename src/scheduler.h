@@ -1,6 +1,11 @@
 #ifndef SCHEDULER_H
 #define SCHEDULER_H
 
-int scheduler_run(void);
+typedef enum {
+    SCHEDULER_RATE,
+    SCHEDULER_EDF
+} SchedulerAlgorithm;
+
+int scheduler_run(SchedulerAlgorithm algorithm, const char *input_path);
 
 #endif
