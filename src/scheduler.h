@@ -37,7 +37,8 @@ typedef struct {
     size_t quantidade_trechos;
 } ResumoSimulacao;
 
-int simular_nucleo_basico(const EntradaSimulacao *entrada,
+int simular_escalonamento(const EntradaSimulacao *entrada,
+                          AlgoritmoEscalonamento algoritmo,
                           ResumoSimulacao *resumo,
                           char *mensagem_erro,
                           size_t tamanho_mensagem_erro);

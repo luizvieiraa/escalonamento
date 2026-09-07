@@ -134,6 +134,47 @@ static void remover_instancias_inativas(VetorInstancias *instancias)
     instancias->quantidade = destino;
 }
 
+static int possui_maior_prioridade_rate(const EntradaSimulacao *entrada,
+                                        const InstanciaExecucao *candidata,
+                                        const InstanciaExecucao *atual)
+{
+    const DefinicaoTarefa *tarefa_candidata =
+        &entrada->tarefas[candidata->indice_tarefa];
+    const DefinicaoTarefa *tarefa_atual =
+        &entrada->tarefas[atual->indice_tarefa];
+
+    if (tarefa_candidata->periodo != tarefa_atual->periodo) {
+        return tarefa_candidata->periodo < tarefa_atual->periodo;
+    }
+
+    return tarefa_candidata->ordem_entrada < tarefa_atual->ordem_entrada;
+}
+
+static size_t escolher_instancia_pronta(const EntradaSimulacao *entrada,
+                                        const VetorInstancias *instancias,
+                                        AlgoritmoEscalonamento algoritmo)
+{
+    size_t escolhida = instancias->quantidade;
+    size_t indice;
+
+    for (indice = 0; indice < instancias->quantidade; indice++) {
+        if (!instancias->itens[indice].ativa) {
+            continue;
+        }
+
+        if (escolhida == instancias->quantidade) {
+            escolhida = indice;
+        } else if (algoritmo == ESCALONADOR_RATE &&
+                   possui_maior_prioridade_rate(entrada,
+                                                &instancias->itens[indice],
+                                                &instancias->itens[escolhida])) {
+            escolhida = indice;
+        }
+    }
+
+    return escolhida;
+}
+
 static int preparar_resumo(size_t quantidade_tarefas,
                            ResumoSimulacao *resumo)
 {
@@ -185,7 +226,8 @@ void liberar_resumo_simulacao(ResumoSimulacao *resumo)
     resumo->tempo_ocioso = 0;
 }
 
-int simular_nucleo_basico(const EntradaSimulacao *entrada,
+int simular_escalonamento(const EntradaSimulacao *entrada,
+                          AlgoritmoEscalonamento algoritmo,
                           ResumoSimulacao *resumo,
                           char *mensagem_erro,
                           size_t tamanho_mensagem_erro)
@@ -238,13 +280,8 @@ int simular_nucleo_basico(const EntradaSimulacao *entrada,
             }
         }
 
-        indice_instancia_escolhida = instancias.quantidade;
-        for (indice = 0; indice < instancias.quantidade; indice++) {
-            if (instancias.itens[indice].ativa) {
-                indice_instancia_escolhida = indice;
-                break;
-            }
-        }
+        indice_instancia_escolhida =
+            escolher_instancia_pronta(entrada, &instancias, algoritmo);
 
         if (indice_instancia_escolhida < instancias.quantidade) {
             InstanciaExecucao *escolhida =
@@ -323,7 +360,8 @@ int executar_escalonador(AlgoritmoEscalonamento algoritmo,
         return EXIT_FAILURE;
     }
 
-    if (!simular_nucleo_basico(&entrada,
+    if (!simular_escalonamento(&entrada,
+                               algoritmo,
                                &resumo,
                                mensagem_erro,
                                sizeof(mensagem_erro))) {
