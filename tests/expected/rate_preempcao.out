@@ -1,0 +1,20 @@
+EXECUTION BY RATE
+[ALTA] for 1 units - F
+[BAIXA] for 3 units - H
+[ALTA] for 1 units - F
+[BAIXA] for 3 units - F
+[ALTA] for 1 units - F
+idle for 1 units
+[BAIXA] for 2 units - K
+
+LOST DEADLINES
+[BAIXA] 0
+[ALTA] 0
+
+COMPLETE EXECUTION
+[BAIXA] 1
+[ALTA] 3
+
+KILLED
+[BAIXA] 1
+[ALTA] 0
