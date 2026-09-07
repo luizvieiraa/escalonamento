@@ -2,10 +2,11 @@
 #define SCHEDULER_H
 
 typedef enum {
-    SCHEDULER_RATE,
-    SCHEDULER_EDF
-} SchedulerAlgorithm;
+    ESCALONADOR_RATE,
+    ESCALONADOR_EDF
+} AlgoritmoEscalonamento;
 
-int scheduler_run(SchedulerAlgorithm algorithm, const char *input_path);
+int executar_escalonador(AlgoritmoEscalonamento algoritmo,
+                         const char *caminho_entrada);
 
 #endif

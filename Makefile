@@ -2,15 +2,15 @@ CC := gcc
 CFLAGS := -std=c11 -Wall -Wextra -Wpedantic
 CPPFLAGS := -Isrc
 
-TARGET := scheduler
-SOURCES := src/main.c src/parser.c src/scheduler.c
+ALVO := scheduler
+FONTES := src/main.c src/parser.c src/scheduler.c
 
 .PHONY: all clean
 
-all: $(TARGET)
+all: $(ALVO)
 
-$(TARGET): $(SOURCES)
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(SOURCES) -o $(TARGET)
+$(ALVO): $(FONTES)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(FONTES) -o $(ALVO)
 
 clean:
-	rm -f $(TARGET)
+	rm -f $(ALVO)
