@@ -3,7 +3,7 @@ CFLAGS := -std=c11 -Wall -Wextra -Wpedantic
 CPPFLAGS := -Isrc
 
 ALVO := scheduler
-FONTES := src/main.c src/parser.c src/scheduler.c
+FONTES := src/main.c src/parser.c src/scheduler.c src/output.c
 
 .PHONY: all clean
 
