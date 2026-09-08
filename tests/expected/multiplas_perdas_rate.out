@@ -1,0 +1,21 @@
+EXECUTION BY RATE
+[ALTA] for 1 units - F
+[BAIXA] for 1 units - L
+[ALTA] for 1 units - F
+idle for 1 units
+[ALTA] for 1 units - F
+[BAIXA] for 1 units - L
+[ALTA] for 1 units - F
+idle for 1 units
+
+LOST DEADLINES
+[BAIXA] 2
+[ALTA] 0
+
+COMPLETE EXECUTION
+[BAIXA] 0
+[ALTA] 4
+
+KILLED
+[BAIXA] 0
+[ALTA] 0
