@@ -28,5 +28,11 @@ alterados pelos testes.
 - formato completo dos arquivos `rate_lhcv.out` e `edf_lhcv.out`;
 - falha ao criar o arquivo de saida;
 - silencio em `stdout` durante execucoes normais.
+- busca sistematica e reproducao de um conjunto em que RATE perde deadlines e
+  EDF nao perde.
 
 Os arquivos em `expected/` sao comparados byte a byte com `cmp`.
+
+O programa `buscar_comparativo.c` percorre combinacoes pequenas que respeitam
+`C <= D <= P`, executa os dois algoritmos e exige zero tarefas `Killed`. A busca
+encontrou o caso permanente `cases/comparativo_rate_edf.txt`.

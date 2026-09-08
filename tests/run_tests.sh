@@ -13,6 +13,7 @@ entrada_multiplas_perdas="$diretorio_projeto/tests/cases/multiplas_perdas.txt"
 entrada_killed_aguardando="$diretorio_projeto/tests/cases/killed_aguardando.txt"
 entrada_muitas_tarefas="$diretorio_projeto/tests/cases/muitas_tarefas.txt"
 entrada_tarefa_unica_idle="$diretorio_projeto/tests/cases/tarefa_unica_idle.txt"
+entrada_comparativa="$diretorio_projeto/tests/cases/comparativo_rate_edf.txt"
 saida_rate_esperada="$diretorio_projeto/tests/expected/minimal_rate.out"
 saida_edf_esperada="$diretorio_projeto/tests/expected/minimal_edf.out"
 saida_preempcao_rate_esperada="$diretorio_projeto/tests/expected/rate_preempcao.out"
@@ -23,6 +24,8 @@ saida_empate_edf_esperada="$diretorio_projeto/tests/expected/edf_empate_chegada.
 saida_multiplas_perdas_esperada="$diretorio_projeto/tests/expected/multiplas_perdas_rate.out"
 saida_killed_aguardando_esperada="$diretorio_projeto/tests/expected/killed_aguardando_rate.out"
 saida_tarefa_unica_idle_esperada="$diretorio_projeto/tests/expected/tarefa_unica_idle_rate.out"
+saida_comparativa_rate_esperada="$diretorio_projeto/tests/expected/comparativo_rate.out"
+saida_comparativa_edf_esperada="$diretorio_projeto/tests/expected/comparativo_edf.out"
 diretorio_teste=$(mktemp -d)
 
 trap 'rm -rf "$diretorio_teste"' EXIT
@@ -206,6 +209,14 @@ executar_com_sucesso "entrada CRLF com tabulacoes" \
 executar_com_sucesso "nome maior que o buffer inicial" \
                      rate \
                      "$diretorio_teste/nome-longo.txt"
+executar_e_comparar "caso comparativo em RATE" \
+                    rate \
+                    "$entrada_comparativa" \
+                    "$saida_comparativa_rate_esperada"
+executar_e_comparar "caso comparativo em EDF" \
+                    edf \
+                    "$entrada_comparativa" \
+                    "$saida_comparativa_edf_esperada"
 
 gcc -I"$diretorio_projeto/src" -std=c11 -Wall -Wextra -Wpedantic \
     "$diretorio_projeto/tests/teste_nucleo.c" \
@@ -216,4 +227,19 @@ gcc -I"$diretorio_projeto/src" -std=c11 -Wall -Wextra -Wpedantic \
 
 "$diretorio_teste/teste_nucleo"
 
-echo "Todos os testes ate a etapa 9 passaram."
+gcc -I"$diretorio_projeto/src" -std=c11 -Wall -Wextra -Wpedantic \
+    "$diretorio_projeto/tests/buscar_comparativo.c" \
+    "$diretorio_projeto/src/scheduler.c" \
+    "$diretorio_projeto/src/parser.c" \
+    "$diretorio_projeto/src/output.c" \
+    -o "$diretorio_teste/buscar_comparativo"
+
+resultado_busca=$("$diretorio_teste/buscar_comparativo")
+resultado_esperado='12
+T1 2 2 1
+T2 3 1 1
+RATE_LOST=2 EDF_LOST=0'
+[ "$resultado_busca" = "$resultado_esperado" ] || \
+    falhar "a busca nao reproduziu o conjunto comparativo esperado"
+
+echo "Todos os testes ate a etapa 10 passaram."
