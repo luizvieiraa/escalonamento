@@ -11,18 +11,24 @@ static void exigir(int condicao, const char *mensagem)
     }
 }
 
-static ResumoSimulacao executar(const EntradaSimulacao *entrada)
+static ResumoSimulacao executar_com_algoritmo(const EntradaSimulacao *entrada,
+                                              AlgoritmoEscalonamento algoritmo)
 {
     ResumoSimulacao resumo;
     char mensagem_erro[256];
 
     exigir(simular_escalonamento(entrada,
-                                 ESCALONADOR_RATE,
+                                 algoritmo,
                                  &resumo,
                                  mensagem_erro,
                                  sizeof(mensagem_erro)),
            mensagem_erro);
     return resumo;
+}
+
+static ResumoSimulacao executar(const EntradaSimulacao *entrada)
+{
+    return executar_com_algoritmo(entrada, ESCALONADOR_RATE);
 }
 
 static void testar_tarefa_unica_periodica(void)
@@ -214,6 +220,50 @@ static void testar_deadline_e_chegada_no_mesmo_instante(void)
     liberar_resumo_simulacao(&resumo);
 }
 
+static void testar_edf_com_deadlines_absolutos(void)
+{
+    DefinicaoTarefa tarefas[] = {
+        {"ATT", 20, 12, 8, 0},
+        {"NAV", 50, 30, 15, 1}
+    };
+    EntradaSimulacao entrada = {32, tarefas, 2};
+    ResumoSimulacao resumo =
+        executar_com_algoritmo(&entrada, ESCALONADOR_EDF);
+
+    exigir(resumo.quantidade_trechos == 4,
+           "cenario EDF parcial deveria possuir quatro trechos");
+    exigir(resumo.historico[1].indice_tarefa == 1 &&
+               resumo.historico[1].duracao == 15 &&
+               resumo.historico[1].situacao == TRECHO_FINALIZADO,
+           "NAV deveria continuar no instante 20 por ter deadline 30");
+    exigir(resumo.historico[2].indice_tarefa == 0 &&
+               resumo.historico[2].duracao == 8 &&
+               resumo.historico[2].situacao == TRECHO_FINALIZADO,
+           "nova ATT deveria executar depois de NAV e terminar em 31");
+    exigir(resumo.deadlines_perdidos_por_tarefa[0] == 0 &&
+               resumo.deadlines_perdidos_por_tarefa[1] == 0,
+           "EDF nao deveria perder deadlines nesse intervalo");
+
+    liberar_resumo_simulacao(&resumo);
+}
+
+static void testar_desempate_edf_pela_ordem(void)
+{
+    DefinicaoTarefa tarefas[] = {
+        {"PRIMEIRA", 10, 5, 1, 0},
+        {"SEGUNDA", 8, 5, 1, 1}
+    };
+    EntradaSimulacao entrada = {2, tarefas, 2};
+    ResumoSimulacao resumo =
+        executar_com_algoritmo(&entrada, ESCALONADOR_EDF);
+
+    exigir(resumo.historico[0].indice_tarefa == 0 &&
+               resumo.historico[1].indice_tarefa == 1,
+           "deadlines absolutos iguais deveriam respeitar a ordem do arquivo");
+
+    liberar_resumo_simulacao(&resumo);
+}
+
 int main(void)
 {
     testar_tarefa_unica_periodica();
@@ -224,6 +274,8 @@ int main(void)
     testar_conclusao_exatamente_no_deadline();
     testar_deadline_no_limite_final();
     testar_deadline_e_chegada_no_mesmo_instante();
+    testar_edf_com_deadlines_absolutos();
+    testar_desempate_edf_pela_ordem();
 
     puts("Testes do nucleo temporal passaram.");
     return EXIT_SUCCESS;

@@ -151,6 +151,22 @@ static int possui_maior_prioridade_rate(const EntradaSimulacao *entrada,
     return tarefa_candidata->ordem_entrada < tarefa_atual->ordem_entrada;
 }
 
+static int possui_maior_prioridade_edf(const EntradaSimulacao *entrada,
+                                       const InstanciaExecucao *candidata,
+                                       const InstanciaExecucao *atual)
+{
+    const DefinicaoTarefa *tarefa_candidata =
+        &entrada->tarefas[candidata->indice_tarefa];
+    const DefinicaoTarefa *tarefa_atual =
+        &entrada->tarefas[atual->indice_tarefa];
+
+    if (candidata->deadline_absoluto != atual->deadline_absoluto) {
+        return candidata->deadline_absoluto < atual->deadline_absoluto;
+    }
+
+    return tarefa_candidata->ordem_entrada < tarefa_atual->ordem_entrada;
+}
+
 static size_t escolher_instancia_pronta(const EntradaSimulacao *entrada,
                                         const VetorInstancias *instancias,
                                         AlgoritmoEscalonamento algoritmo)
@@ -165,10 +181,15 @@ static size_t escolher_instancia_pronta(const EntradaSimulacao *entrada,
 
         if (escolhida == instancias->quantidade) {
             escolhida = indice;
-        } else if (algoritmo == ESCALONADOR_RATE &&
-                   possui_maior_prioridade_rate(entrada,
-                                                &instancias->itens[indice],
-                                                &instancias->itens[escolhida])) {
+        } else if (algoritmo == ESCALONADOR_RATE) {
+            if (possui_maior_prioridade_rate(entrada,
+                                             &instancias->itens[indice],
+                                             &instancias->itens[escolhida])) {
+                escolhida = indice;
+            }
+        } else if (possui_maior_prioridade_edf(entrada,
+                                               &instancias->itens[indice],
+                                               &instancias->itens[escolhida])) {
             escolhida = indice;
         }
     }

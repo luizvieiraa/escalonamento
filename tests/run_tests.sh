@@ -11,6 +11,7 @@ saida_rate_esperada="$diretorio_projeto/tests/expected/minimal_rate.out"
 saida_edf_esperada="$diretorio_projeto/tests/expected/minimal_edf.out"
 saida_preempcao_rate_esperada="$diretorio_projeto/tests/expected/rate_preempcao.out"
 saida_exemplo_rate_esperada="$diretorio_projeto/tests/expected/exemplo_rate.out"
+saida_exemplo_edf_esperada="$diretorio_projeto/tests/expected/exemplo_edf.out"
 diretorio_teste=$(mktemp -d)
 
 trap 'rm -rf "$diretorio_teste"' EXIT
@@ -93,6 +94,14 @@ fi
 cmp -s "$diretorio_teste/rate_lhcv.out" "$saida_exemplo_rate_esperada" || \
     falhar "saida RATE do exemplo do enunciado esta incorreta"
 
+if ! (cd "$diretorio_teste" && "$escalonador" edf "$entrada_multipla" >stdout.txt 2>stderr.txt); then
+    falhar "execucao EDF do exemplo do enunciado falhou"
+fi
+[ ! -s "$diretorio_teste/stdout.txt" ] || falhar "exemplo EDF escreveu em stdout"
+[ ! -s "$diretorio_teste/stderr.txt" ] || falhar "exemplo EDF escreveu em stderr"
+cmp -s "$diretorio_teste/edf_lhcv.out" "$saida_exemplo_edf_esperada" || \
+    falhar "saida EDF do exemplo do enunciado esta incorreta"
+
 if ! (cd "$diretorio_teste" && "$escalonador" rate "$entrada_preempcao_rate" >stdout.txt 2>stderr.txt); then
     falhar "cenario de preempcao RATE falhou"
 fi
@@ -110,4 +119,4 @@ gcc -I"$diretorio_projeto/src" -std=c11 -Wall -Wextra -Wpedantic \
 
 "$diretorio_teste/teste_nucleo"
 
-echo "Todos os testes ate a etapa 7 passaram."
+echo "Todos os testes ate a etapa 8 passaram."
