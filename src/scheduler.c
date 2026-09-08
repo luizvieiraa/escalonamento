@@ -15,6 +15,7 @@ typedef struct {
     size_t identificador;
     size_t indice_tarefa;
     int instante_chegada;
+    long long deadline_absoluto;
     int tempo_restante;
     int ativa;
 } InstanciaExecucao;
@@ -175,6 +176,34 @@ static size_t escolher_instancia_pronta(const EntradaSimulacao *entrada,
     return escolhida;
 }
 
+static void descartar_instancias_no_deadline(VetorInstancias *instancias,
+                                             long long tempo,
+                                             ResumoSimulacao *resumo)
+{
+    size_t indice;
+
+    for (indice = 0; indice < instancias->quantidade; indice++) {
+        InstanciaExecucao *instancia = &instancias->itens[indice];
+
+        if (!instancia->ativa || instancia->deadline_absoluto != tempo) {
+            continue;
+        }
+
+        instancia->ativa = 0;
+        resumo->deadlines_perdidos_por_tarefa[instancia->indice_tarefa]++;
+
+        if (resumo->quantidade_trechos > 0) {
+            TrechoExecucao *ultimo =
+                &resumo->historico[resumo->quantidade_trechos - 1];
+
+            if (ultimo->situacao == TRECHO_EM_EXECUCAO &&
+                ultimo->identificador_instancia == instancia->identificador) {
+                ultimo->situacao = TRECHO_DEADLINE_PERDIDO;
+            }
+        }
+    }
+}
+
 static int preparar_resumo(size_t quantidade_tarefas,
                            ResumoSimulacao *resumo)
 {
@@ -183,7 +212,7 @@ static int preparar_resumo(size_t quantidade_tarefas,
     resumo->quantidade_tarefas = quantidade_tarefas;
     resumo->conclusoes_por_tarefa = NULL;
     resumo->deadlines_perdidos_por_tarefa = NULL;
-    resumo->pendencias_por_tarefa = NULL;
+    resumo->mortas_por_tarefa = NULL;
     resumo->historico = NULL;
     resumo->quantidade_trechos = 0;
 
@@ -198,11 +227,11 @@ static int preparar_resumo(size_t quantidade_tarefas,
     resumo->conclusoes_por_tarefa = calloc(quantidade_tarefas, sizeof(size_t));
     resumo->deadlines_perdidos_por_tarefa =
         calloc(quantidade_tarefas, sizeof(size_t));
-    resumo->pendencias_por_tarefa = calloc(quantidade_tarefas, sizeof(size_t));
+    resumo->mortas_por_tarefa = calloc(quantidade_tarefas, sizeof(size_t));
 
     if (resumo->conclusoes_por_tarefa == NULL ||
         resumo->deadlines_perdidos_por_tarefa == NULL ||
-        resumo->pendencias_por_tarefa == NULL) {
+        resumo->mortas_por_tarefa == NULL) {
         liberar_resumo_simulacao(resumo);
         return 0;
     }
@@ -214,11 +243,11 @@ void liberar_resumo_simulacao(ResumoSimulacao *resumo)
 {
     free(resumo->conclusoes_por_tarefa);
     free(resumo->deadlines_perdidos_por_tarefa);
-    free(resumo->pendencias_por_tarefa);
+    free(resumo->mortas_por_tarefa);
     free(resumo->historico);
     resumo->conclusoes_por_tarefa = NULL;
     resumo->deadlines_perdidos_por_tarefa = NULL;
-    resumo->pendencias_por_tarefa = NULL;
+    resumo->mortas_por_tarefa = NULL;
     resumo->historico = NULL;
     resumo->quantidade_trechos = 0;
     resumo->quantidade_tarefas = 0;
@@ -246,6 +275,7 @@ int simular_escalonamento(const EntradaSimulacao *entrada,
     for (tempo = 0; tempo < entrada->tempo_total; tempo++) {
         size_t indice_instancia_escolhida;
 
+        descartar_instancias_no_deadline(&instancias, tempo, resumo);
         remover_instancias_inativas(&instancias);
 
         for (indice = 0; indice < entrada->quantidade_tarefas; indice++) {
@@ -266,6 +296,8 @@ int simular_escalonamento(const EntradaSimulacao *entrada,
                 nova_instancia.identificador = proximo_identificador++;
                 nova_instancia.indice_tarefa = indice;
                 nova_instancia.instante_chegada = tempo;
+                nova_instancia.deadline_absoluto =
+                    (long long)tempo + tarefa->deadline_relativo;
                 nova_instancia.tempo_restante = tarefa->tempo_cpu;
                 nova_instancia.ativa = 1;
 
@@ -326,16 +358,20 @@ int simular_escalonamento(const EntradaSimulacao *entrada,
         }
     }
 
+    descartar_instancias_no_deadline(&instancias,
+                                     entrada->tempo_total,
+                                     resumo);
+
+    for (indice = 0; indice < instancias.quantidade; indice++) {
+        if (instancias.itens[indice].ativa) {
+            resumo->mortas_por_tarefa[instancias.itens[indice].indice_tarefa]++;
+        }
+    }
+
     if (resumo->quantidade_trechos > 0 &&
         resumo->historico[resumo->quantidade_trechos - 1].situacao ==
             TRECHO_EM_EXECUCAO) {
         resumo->historico[resumo->quantidade_trechos - 1].situacao = TRECHO_MORTO;
-    }
-
-    for (indice = 0; indice < instancias.quantidade; indice++) {
-        if (instancias.itens[indice].ativa) {
-            resumo->pendencias_por_tarefa[instancias.itens[indice].indice_tarefa]++;
-        }
     }
 
     free(instancias.itens);

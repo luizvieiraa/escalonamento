@@ -10,6 +10,7 @@ entrada_preempcao_rate="$diretorio_projeto/tests/cases/rate_preempcao.txt"
 saida_rate_esperada="$diretorio_projeto/tests/expected/minimal_rate.out"
 saida_edf_esperada="$diretorio_projeto/tests/expected/minimal_edf.out"
 saida_preempcao_rate_esperada="$diretorio_projeto/tests/expected/rate_preempcao.out"
+saida_exemplo_rate_esperada="$diretorio_projeto/tests/expected/exemplo_rate.out"
 diretorio_teste=$(mktemp -d)
 
 trap 'rm -rf "$diretorio_teste"' EXIT
@@ -89,6 +90,8 @@ if ! (cd "$diretorio_teste" && "$escalonador" rate "$entrada_multipla" >stdout.t
 fi
 [ ! -s "$diretorio_teste/stdout.txt" ] || falhar "entrada com varias tarefas escreveu em stdout"
 [ ! -s "$diretorio_teste/stderr.txt" ] || falhar "entrada com varias tarefas escreveu em stderr"
+cmp -s "$diretorio_teste/rate_lhcv.out" "$saida_exemplo_rate_esperada" || \
+    falhar "saida RATE do exemplo do enunciado esta incorreta"
 
 if ! (cd "$diretorio_teste" && "$escalonador" rate "$entrada_preempcao_rate" >stdout.txt 2>stderr.txt); then
     falhar "cenario de preempcao RATE falhou"
@@ -107,4 +110,4 @@ gcc -I"$diretorio_projeto/src" -std=c11 -Wall -Wextra -Wpedantic \
 
 "$diretorio_teste/teste_nucleo"
 
-echo "Todos os testes ate a etapa 6 passaram."
+echo "Todos os testes ate a etapa 7 passaram."

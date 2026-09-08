@@ -119,7 +119,7 @@ int gravar_saida_simulacao(const char *caminho,
     sucesso = sucesso && escrever_contadores(arquivo,
                                              "KILLED",
                                              entrada,
-                                             resumo->pendencias_por_tarefa);
+                                             resumo->mortas_por_tarefa);
 
     if (fclose(arquivo) != 0) {
         sucesso = 0;

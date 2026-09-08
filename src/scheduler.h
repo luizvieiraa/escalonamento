@@ -32,7 +32,7 @@ typedef struct {
     size_t quantidade_tarefas;
     size_t *conclusoes_por_tarefa;
     size_t *deadlines_perdidos_por_tarefa;
-    size_t *pendencias_por_tarefa;
+    size_t *mortas_por_tarefa;
     TrechoExecucao *historico;
     size_t quantidade_trechos;
 } ResumoSimulacao;

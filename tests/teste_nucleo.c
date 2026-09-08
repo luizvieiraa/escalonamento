@@ -39,7 +39,7 @@ static void testar_tarefa_unica_periodica(void)
            "tarefa unica deveria deixar 6 unidades ociosas");
     exigir(resumo.conclusoes_por_tarefa[0] == 3,
            "as tres instancias deveriam terminar");
-    exigir(resumo.pendencias_por_tarefa[0] == 0,
+    exigir(resumo.mortas_por_tarefa[0] == 0,
            "nao deveria restar instancia pendente");
     exigir(resumo.deadlines_perdidos_por_tarefa[0] == 0,
            "o nucleo basico nao deveria registrar deadlines perdidos");
@@ -110,7 +110,7 @@ static void testar_instancia_pendente_no_final(void)
 
     exigir(resumo.conclusoes_por_tarefa[0] == 2,
            "somente duas instancias deveriam terminar");
-    exigir(resumo.pendencias_por_tarefa[0] == 1,
+    exigir(resumo.mortas_por_tarefa[0] == 1,
            "uma instancia deveria permanecer pendente no final");
     exigir(resumo.tempo_execucao_cpu + resumo.tempo_ocioso == 11,
            "cada instante deve ser execucao ou idle");
@@ -146,8 +146,70 @@ static void testar_rate_com_preempcao(void)
     exigir(resumo.conclusoes_por_tarefa[0] == 1 &&
                resumo.conclusoes_por_tarefa[1] == 3,
            "contagem de conclusoes RATE incorreta");
-    exigir(resumo.pendencias_por_tarefa[0] == 1,
+    exigir(resumo.mortas_por_tarefa[0] == 1,
            "segunda instancia de BAIXA deveria ficar pendente");
+
+    liberar_resumo_simulacao(&resumo);
+}
+
+static void testar_conclusao_exatamente_no_deadline(void)
+{
+    DefinicaoTarefa tarefas[] = {
+        {"EXATA", 10, 3, 3, 0}
+    };
+    EntradaSimulacao entrada = {5, tarefas, 1};
+    ResumoSimulacao resumo = executar(&entrada);
+
+    exigir(resumo.conclusoes_por_tarefa[0] == 1,
+           "conclusao exatamente no deadline deveria ser aceita");
+    exigir(resumo.deadlines_perdidos_por_tarefa[0] == 0,
+           "tarefa concluida no deadline nao deveria ser perdida");
+    exigir(resumo.mortas_por_tarefa[0] == 0,
+           "tarefa concluida nao deveria ser morta");
+
+    liberar_resumo_simulacao(&resumo);
+}
+
+static void testar_deadline_no_limite_final(void)
+{
+    DefinicaoTarefa tarefas[] = {
+        {"PRIMEIRA", 10, 3, 2, 0},
+        {"SEGUNDA", 10, 3, 2, 1}
+    };
+    EntradaSimulacao entrada = {3, tarefas, 2};
+    ResumoSimulacao resumo = executar(&entrada);
+    TrechoExecucao *ultimo = &resumo.historico[resumo.quantidade_trechos - 1];
+
+    exigir(resumo.conclusoes_por_tarefa[0] == 1,
+           "primeira tarefa deveria terminar antes do limite");
+    exigir(resumo.deadlines_perdidos_por_tarefa[1] == 1,
+           "deadline igual ao fim da simulacao deveria ser perdido");
+    exigir(resumo.mortas_por_tarefa[1] == 0,
+           "deadline no limite nao deveria ser contado como Killed");
+    exigir(ultimo->indice_tarefa == 1 &&
+               ultimo->situacao == TRECHO_DEADLINE_PERDIDO,
+           "ultimo trecho deveria terminar com indicador L");
+
+    liberar_resumo_simulacao(&resumo);
+}
+
+static void testar_deadline_e_chegada_no_mesmo_instante(void)
+{
+    DefinicaoTarefa tarefas[] = {
+        {"PRIMEIRA", 3, 3, 2, 0},
+        {"SEGUNDA", 3, 3, 2, 1}
+    };
+    EntradaSimulacao entrada = {4, tarefas, 2};
+    ResumoSimulacao resumo = executar(&entrada);
+
+    exigir(resumo.deadlines_perdidos_por_tarefa[1] == 1,
+           "instancia antiga deveria ser descartada no instante 3");
+    exigir(resumo.mortas_por_tarefa[0] == 1 &&
+               resumo.mortas_por_tarefa[1] == 1,
+           "novas instancias do instante 3 deveriam existir no fim");
+    exigir(resumo.quantidade_trechos == 3 &&
+               resumo.historico[1].situacao == TRECHO_DEADLINE_PERDIDO,
+           "descarte deveria ocorrer antes das chegadas do mesmo instante");
 
     liberar_resumo_simulacao(&resumo);
 }
@@ -159,6 +221,9 @@ int main(void)
     testar_cpu_totalmente_ociosa();
     testar_instancia_pendente_no_final();
     testar_rate_com_preempcao();
+    testar_conclusao_exatamente_no_deadline();
+    testar_deadline_no_limite_final();
+    testar_deadline_e_chegada_no_mesmo_instante();
 
     puts("Testes do nucleo temporal passaram.");
     return EXIT_SUCCESS;
